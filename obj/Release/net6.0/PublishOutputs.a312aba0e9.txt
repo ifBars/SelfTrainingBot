@@ -1,0 +1,8 @@
+C:\Users\ghost\source\repos\SelfTrainingBot\SelfTrainingBot\bin\Release\net6.0\publish\SelfTrainingBot.exe
+C:\Users\ghost\source\repos\SelfTrainingBot\SelfTrainingBot\bin\Release\net6.0\publish\SelfTrainingBot.dll
+C:\Users\ghost\source\repos\SelfTrainingBot\SelfTrainingBot\bin\Release\net6.0\publish\SelfTrainingBot.deps.json
+C:\Users\ghost\source\repos\SelfTrainingBot\SelfTrainingBot\bin\Release\net6.0\publish\SelfTrainingBot.runtimeconfig.json
+C:\Users\ghost\source\repos\SelfTrainingBot\SelfTrainingBot\bin\Release\net6.0\publish\SelfTrainingBot.pdb
+C:\Users\ghost\source\repos\SelfTrainingBot\SelfTrainingBot\bin\Release\net6.0\publish\Newtonsoft.Json.dll
+C:\Users\ghost\source\repos\SelfTrainingBot\SelfTrainingBot\bin\Release\net6.0\publish\StringMatchingTools.dll
+C:\Users\ghost\source\repos\SelfTrainingBot\SelfTrainingBot\bin\Release\net6.0\publish\StringMatchingTools.pdb

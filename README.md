@@ -1,0 +1,2 @@
+# SelfTrainingBot
+ A WIP STCB
