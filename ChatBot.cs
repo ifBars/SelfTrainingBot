@@ -44,23 +44,16 @@ public class ChatBot
         foreach (string question in _trainingData.Keys)
         {
             double distance = SMT.Check(input, question, false);
-            // Console.WriteLine("Debug: " + distance.ToString());
-            if (distance > 0.6)
+            Console.WriteLine("Debug: " + distance.ToString());
+            if (distance > 0.7)
             {
                 matches.Add(question);
             }
         }
 
-        if(matches.Count != 0)
+        if (matches.Count != 0)
         {
-            // create a new instance of the Random class
-            Random rand = new Random();
-
-            // generate a random index within the range of the list
-            int index = rand.Next(matches.Count);
-
-            // access the random string using the random index
-            closestMatch = matches[index];
+            closestMatch = matches[0];
         }
 
         if (closestMatch != null)

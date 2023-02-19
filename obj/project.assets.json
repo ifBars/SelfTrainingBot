@@ -118,19 +118,19 @@
   },
   "packageFolders": {
     "C:\\Users\\ghost\\.nuget\\packages\\": {},
-    "E:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages": {}
+    "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\ghost\\source\\repos\\SelfTrainingBot\\SelfTrainingBot\\SelfTrainingBot.csproj",
+      "projectUniqueName": "C:\\Users\\ghost\\OneDrive\\Desktop\\Programs\\SelfTrainingBot\\SelfTrainingBot.csproj",
       "projectName": "SelfTrainingBot",
-      "projectPath": "C:\\Users\\ghost\\source\\repos\\SelfTrainingBot\\SelfTrainingBot\\SelfTrainingBot.csproj",
+      "projectPath": "C:\\Users\\ghost\\OneDrive\\Desktop\\Programs\\SelfTrainingBot\\SelfTrainingBot.csproj",
       "packagesPath": "C:\\Users\\ghost\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\ghost\\source\\repos\\SelfTrainingBot\\SelfTrainingBot\\obj\\",
+      "outputPath": "C:\\Users\\ghost\\OneDrive\\Desktop\\Programs\\SelfTrainingBot\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
-        "E:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
+        "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
       ],
       "configFilePaths": [
         "C:\\Users\\ghost\\AppData\\Roaming\\NuGet\\NuGet.Config",

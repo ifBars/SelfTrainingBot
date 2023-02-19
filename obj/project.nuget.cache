@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "WfpRBlfl0EuyslUBIZE7Q3VReIZn0+3ZEmUrodXu0+2oQ6NfWs+vPjn3JctzPv42H/WRByXdIFrNg/beYWg1bg==",
+  "dgSpecHash": "crQXFksCc+rg9DSlVZ6nDO78wC+Zam445F71vnhXAV/NIJfUxn+1cn8PRaFvrKCMdqymMXQVxWXSA+h0p3/v6w==",
   "success": true,
-  "projectFilePath": "C:\\Users\\ghost\\source\\repos\\SelfTrainingBot\\SelfTrainingBot\\SelfTrainingBot.csproj",
+  "projectFilePath": "C:\\Users\\ghost\\OneDrive\\Desktop\\Programs\\SelfTrainingBot\\SelfTrainingBot.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\ghost\\.nuget\\packages\\htmlagilitypack\\1.11.46\\htmlagilitypack.1.11.46.nupkg.sha512",
     "C:\\Users\\ghost\\.nuget\\packages\\newtonsoft.json\\13.0.2\\newtonsoft.json.13.0.2.nupkg.sha512"

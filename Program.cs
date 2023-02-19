@@ -1,4 +1,5 @@
-﻿using System;
+﻿using SelfTrainingBot;
+using System;
 
 internal class Program
 {
@@ -24,19 +25,20 @@ internal class Program
                 doGen = false;
             }
 
-            if (input.StartsWith("Train ", StringComparison.OrdinalIgnoreCase) && input.Contains("http", StringComparison.OrdinalIgnoreCase))
+            if (input.StartsWith("train ", StringComparison.OrdinalIgnoreCase) && input.Contains("http", StringComparison.OrdinalIgnoreCase))
             {
-
+                string modifiedInput = input.Remove("train ");
+                string[] keywords = Articles.ExtractKeywordsFromArticle(input);
                 doGen = false;
             }
 
-            if (StringMatchingTools.SMT.Check(input, "What day is it today?", false) > 0.6)
+            if (StringMatchingTools.SMT.Check(input, "What day is it today?", false) > 0.7)
             {
                 Console.WriteLine("The current date today is: " + DateTime.Now.Date.ToString());
                 doGen = false;
             }
 
-            if (StringMatchingTools.SMT.Check(input, "What time is it?", false) > 0.6)
+            if (StringMatchingTools.SMT.Check(input, "What time is it?", false) > 0.7)
             {
                 Console.WriteLine("The current time is: " + DateTime.Now.TimeOfDay.ToString());
                 doGen = false;
