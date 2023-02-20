@@ -10,11 +10,12 @@
   <ItemGroup>
     <PackageReference Include="HtmlAgilityPack" Version="1.11.46" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.2" />
+    <PackageReference Include="OpenNLP" Version="1.3.5" />
   </ItemGroup>
 
   <ItemGroup>
     <Reference Include="StringMatchingTools">
-      <HintPath>..\String-Matching-Tools\StringMatchingTools\bin\Debug\StringMatchingTools.dll</HintPath>
+      <HintPath>..\String-Matching-Tools\StringMatchingTools\bin\Release\StringMatchingTools.dll</HintPath>
     </Reference>
   </ItemGroup>
 

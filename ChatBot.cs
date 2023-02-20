@@ -2,7 +2,6 @@
 using System.IO;
 using System.Text.Json;
 using System.Xml;
-
 using StringMatchingTools;
 using System.Collections.Generic;
 using Microsoft.VisualBasic;
@@ -44,8 +43,8 @@ public class ChatBot
         foreach (string question in _trainingData.Keys)
         {
             double distance = SMT.Check(input, question, false);
-            Console.WriteLine("Debug: " + distance.ToString());
-            if (distance > 0.7)
+            // Console.WriteLine("Debug: " + distance.ToString());
+            if (distance > 0.85)
             {
                 matches.Add(question);
             }
