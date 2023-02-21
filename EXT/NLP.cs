@@ -1,10 +1,6 @@
-﻿using System;
+﻿using Newtonsoft.Json.Linq;
 using System.Net;
-using System.IO;
-using Newtonsoft.Json.Linq;
 using System.Text.Json;
-using System.Reflection.Metadata;
-using System.Text.RegularExpressions;
 
 class NLP
 {
@@ -37,7 +33,7 @@ class NLP
         Console.WriteLine("Debug: Person Description: " + personDescription);
         Dictionary<string, string> keyValuePairs = ConvertPersonDescriptionToDictionary(personDescription);
         SaveTrainingData(keyValuePairs, "output.json");
-        
+
     }
 
     public static Dictionary<string, string> ConvertPersonDescriptionToDictionary(string personDescription)

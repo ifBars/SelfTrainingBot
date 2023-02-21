@@ -1,7 +1,4 @@
-﻿using System;
-using System.Net.Http;
-using System.Threading.Tasks;
-using HtmlAgilityPack;
+﻿using HtmlAgilityPack;
 
 namespace SelfTrainingBot.HTML
 {
@@ -13,6 +10,11 @@ namespace SelfTrainingBot.HTML
         "the", "and", "a", "to", "in", "that", "it", "as", "for", "on", "are", "be", "by", "at",
         "an", "this", "or", "but", "not", "is"
     };
+
+        private static string preProcess(string input)
+        {
+            return new string(input.Where(char.IsLetter).ToArray());
+        }
 
         public static string RemoveStopWords(string input)
         {
@@ -38,7 +40,9 @@ namespace SelfTrainingBot.HTML
             // Parse the HTML to extract the article text
             var htmlDocument = new HtmlDocument();
             htmlDocument.LoadHtml(content);
-            var articleText = htmlDocument.DocumentNode.InnerText;
+            string articleText = htmlDocument.DocumentNode.InnerText;
+
+            articleText = preProcess(articleText);
 
             return articleText;
         }

@@ -2,8 +2,6 @@
 using SelfTrainingBot.FT;
 using SelfTrainingBot.HTML;
 using SelfTrainingBot.NLP;
-using System;
-using System.Text.RegularExpressions;
 
 internal class Program
 {
@@ -21,16 +19,15 @@ internal class Program
 
                 string[] keywords = await Articles.ExtractKeywordsFromArticle(modifiedInput);
 
-                for (int i = 0; i < keywords.Length; i++)
-                {
-                    keywords[i] = keywords[i].Replace(",", "").Replace(".", "").Replace("-", "");
-                }
-
                 Console.WriteLine("Debug: Extracting article sentences");
                 string article = await Articles.ExtractArticle(modifiedInput);
                 string[] sentences = article.Split(new char[] { '.', '!', '?' }, StringSplitOptions.RemoveEmptyEntries);
                 List<Tuple<string, string>> qaPairs = new List<Tuple<string, string>>();
                 Random ran = new Random();
+
+                string genwords = string.Empty;
+                string question = string.Empty;
+                string answer = string.Empty;
 
                 foreach (string sentence in sentences)
                 {
@@ -55,7 +52,7 @@ internal class Program
                             // combine the current sentence and the next word into one sentence
                             currentSentence = nextSentence;
                             sentenceLength++;
-                            startIndex += sentenceLength - 1;
+                            startIndex += sentenceLength;
                         }
 
                         // check if the sentence contains any of the keywords
@@ -63,14 +60,32 @@ internal class Program
                         {
                             Console.WriteLine("Debug: Generating Question");
                             // convert the sentence into a question
-                            string question = QnA.ConvertToQuestion(currentSentence);
+                            question = QnA.ConvertToQuestion(currentSentence);
 
                             Console.WriteLine("Debug: Generating Answer");
                             // extract the answer from the sentence
-                            string answer = QnA.ExtractAnswer(currentSentence, question);
+                            answer = QnA.ExtractAnswer(currentSentence, question);
 
                             // add the question and answer to the list of QA pairs
                             qaPairs.Add(new Tuple<string, string>(question, answer));
+
+                            Scoring scorer = new Scoring();
+                            double pairScore = scorer.GetDoubleScore(question, answer);
+
+                            genwords = string.Join(" ", words.Take(startIndex + sentenceLength));
+                            string keywordString = string.Join(" ", keywords);
+                            foreach (string keyword in keywords)
+                            {
+                                genwords = genwords.Replace(keyword, keyword + " ");
+                            }
+                            Console.WriteLine("Debug: Words - " + genwords);
+
+                            Console.WriteLine("Debug: Training dictionary commencing");
+                            Console.WriteLine("Debug: Score - " + pairScore.ToString());
+                            Console.WriteLine("Debug: Question - " + question);
+                            Console.WriteLine("Debug: Answer - " + answer);
+                            QnA.Train(pairScore, genwords, question, answer);
+
                         }
                     }
 
@@ -80,9 +95,22 @@ internal class Program
                         string remainingSentence = string.Join(" ", words.Skip(startIndex));
                         if (keywords.Any(keyword => remainingSentence.Contains(keyword)))
                         {
-                            string question = QnA.ConvertToQuestion(remainingSentence);
-                            string answer = QnA.ExtractAnswer(remainingSentence, question);
+                            question = QnA.ConvertToQuestion(remainingSentence);
+                            answer = QnA.ExtractAnswer(remainingSentence, question);
                             qaPairs.Add(new Tuple<string, string>(question, answer));
+
+                            Scoring scorer = new Scoring();
+                            double pairScore = scorer.GetDoubleScore(question, answer);
+
+                            genwords = string.Join(" ", words);
+                            Console.WriteLine("Debug: Words - " + genwords);
+
+                            Console.WriteLine("Debug: Training dictionary commencing");
+                            Console.WriteLine("Debug: Score - " + pairScore.ToString());
+                            Console.WriteLine("Debug: Question - " + question);
+                            Console.WriteLine("Debug: Answer - " + answer);
+                            QnA.Train(pairScore, genwords, question, answer);
+
                         }
                     }
                 }
