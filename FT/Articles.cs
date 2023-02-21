@@ -3,7 +3,7 @@ using System.Net.Http;
 using System.Threading.Tasks;
 using HtmlAgilityPack;
 
-namespace SelfTrainingBot
+namespace SelfTrainingBot.HTML
 {
     internal class Articles
     {

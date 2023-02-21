@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace SelfTrainingBot
+namespace SelfTrainingBot.FT
 {
     public class Translate
     {
@@ -122,7 +122,7 @@ namespace SelfTrainingBot
                 string result = await response.Content.ReadAsStringAsync();
 
                 // Use Newtonsoft.Json to deserialize the JSON string
-                dynamic json = Newtonsoft.Json.JsonConvert.DeserializeObject(result);
+                dynamic json = JsonConvert.DeserializeObject(result);
 
                 // Get the text from the first translation
                 string text = json[0]["translations"][0]["text"];

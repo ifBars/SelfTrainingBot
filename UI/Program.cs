@@ -1,5 +1,7 @@
 ﻿using Newtonsoft.Json;
-using SelfTrainingBot;
+using SelfTrainingBot.FT;
+using SelfTrainingBot.HTML;
+using SelfTrainingBot.NLP;
 using System;
 using System.Text.RegularExpressions;
 
@@ -85,6 +87,8 @@ internal class Program
                     }
                 }
 
+                double score = double.MinValue;
+                List<double> scores = new List<double>();
                 List<Tuple<string, string>> pair2 = new List<Tuple<string, string>>();
 
                 foreach (Tuple<string, string> qaPair in qaPairs)
@@ -94,17 +98,21 @@ internal class Program
                         if (qaPair.Item2 != null && qaPair.Item2 != "I don't know.")
                         {
                             pair2.Add(qaPair);
-                            Console.WriteLine("Q: " + qaPair.Item1.ToString() + " - " + "A: " + qaPair.Item2.ToString());
+                            Scoring scorer = new Scoring();
+                            double pairScore = scorer.GetDoubleScore(qaPair.Item1, qaPair.Item2);
+                            scores.Add(pairScore);
+                            score = Math.Max(score, pairScore);
                         }
                     }
                 }
 
                 Console.WriteLine("Debug: Printing results");
                 // write the QA pairs to a JSON file
+                var result = new { pairs = pair2, scores = scores };
                 using (StreamWriter file = File.CreateText("output.json"))
                 {
-                        JsonSerializer serializer = new JsonSerializer();
-                        serializer.Serialize(file, pair2);
+                    JsonSerializer serializer = new JsonSerializer();
+                    serializer.Serialize(file, result);
                 }
 
                 if (qaPairs.Count == 0)
