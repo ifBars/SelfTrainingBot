@@ -15,12 +15,12 @@ internal class Program
             try
             {
                 Console.WriteLine("Debug: Awaiting keywords");
-                string modifiedInput = input.Replace("train ", "");
+                string articleLink = input.Replace("train ", "");
 
-                string[] keywords = await Articles.ExtractKeywordsFromArticle(modifiedInput);
+                string[] keywords = await Articles.ExtractKeywordsFromArticle(articleLink);
 
                 Console.WriteLine("Debug: Extracting article sentences");
-                string article = await Articles.ExtractArticle(modifiedInput);
+                string article = await Articles.ExtractArticle(articleLink);
                 string[] sentences = article.Split(new char[] { '.', '!', '?' }, StringSplitOptions.RemoveEmptyEntries);
                 List<Tuple<string, string>> qaPairs = new List<Tuple<string, string>>();
                 Random ran = new Random();
@@ -62,31 +62,25 @@ internal class Program
                             // extract the answer from the sentence
                             string answer = QnA.ExtractAnswer(currentSentence, question);
 
-                            // add the question and answer to the list of QA pairs
-                            qaPairs.Add(new Tuple<string, string>(question, answer));
-
-                            Scoring scorer = new Scoring();
-                            double pairScore = scorer.GetDoubleScore(question, answer);
-
-                            foreach(string genwords in words)
+                            if (answer != null && question != null && answer != string.Empty && question != string.Empty && answer.Length > 5 && question.Length > 5)
                             {
-                                Console.WriteLine("Debug: Word Entry - " + genwords);
+                                // add the question and answer to the list of QA pairs
+                                qaPairs.Add(new Tuple<string, string>(question, answer));
+
+                                Scoring scorer = new Scoring();
+                                double pairScore = scorer.GetDoubleScore(question, answer);
+
+                                // foreach (string genwords in words)
+                                // {
+                                //    Console.WriteLine("Debug: Word Entry - " + genwords);
+                                // }
+
+                                Console.WriteLine("Debug: Training dictionary commencing");
+                                Console.WriteLine("Debug: Score - " + pairScore.ToString());
+                                Console.WriteLine("Debug: Question - " + question);
+                                Console.WriteLine("Debug: Answer - " + answer);
+                                QnA.Train(pairScore, words, question, answer);
                             }
-
-                            string genwords2 = string.Join(" ", words.Take(startIndex + sentenceLength));
-                            string keywordString = string.Join(" ", keywords);
-                            foreach (string keyword in keywords)
-                            {
-                                genwords2 = genwords2.Replace(keyword, keyword + " ");
-                            }
-                            Console.WriteLine("Debug: Words - " + genwords2);
-
-                            Console.WriteLine("Debug: Training dictionary commencing");
-                            Console.WriteLine("Debug: Score - " + pairScore.ToString());
-                            Console.WriteLine("Debug: Question - " + question);
-                            Console.WriteLine("Debug: Answer - " + answer);
-                            QnA.Train(pairScore, genwords2, question, answer);
-
                         }
                     }
 
@@ -103,24 +97,16 @@ internal class Program
                             Scoring scorer = new Scoring();
                             double pairScore = scorer.GetDoubleScore(question, answer);
 
-                            foreach(string genwords in words)
+                            foreach (string genwords in words)
                             {
                                 Console.WriteLine("Debug: Word Entry - " + genwords);
                             }
-
-                            string genwords2 = string.Join(" ", words.Take(startIndex + sentenceLength));
-                            string keywordString = string.Join(" ", keywords);
-                            foreach (string keyword in keywords)
-                            {
-                                genwords2 = genwords2.Replace(keyword, keyword + " ");
-                            }
-                            Console.WriteLine("Debug: Words - " + genwords2);
 
                             Console.WriteLine("Debug: Training dictionary commencing");
                             Console.WriteLine("Debug: Score - " + pairScore.ToString());
                             Console.WriteLine("Debug: Question - " + question);
                             Console.WriteLine("Debug: Answer - " + answer);
-                            QnA.Train(pairScore, genwords2, question, answer);
+                            QnA.Train(pairScore, words, question, answer);
 
                         }
                     }

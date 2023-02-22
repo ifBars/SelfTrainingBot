@@ -1,4 +1,5 @@
 ﻿using HtmlAgilityPack;
+using System.Text;
 
 namespace SelfTrainingBot.HTML
 {
@@ -7,13 +8,22 @@ namespace SelfTrainingBot.HTML
 
         private static readonly HashSet<string> StopWords = new HashSet<string>
     {
-        "the", "and", "a", "to", "in", "that", "it", "as", "for", "on", "are", "be", "by", "at",
+        "the", "and", "a", "to", "that", "as", "on", "be", "by", "at",
         "an", "this", "or", "but", "not", "is"
     };
 
         private static string preProcess(string input)
         {
-            return new string(input.Where(char.IsLetter).ToArray());
+            StringBuilder sb = new StringBuilder();
+            foreach (char c in input)
+            {
+                if (Char.IsLetter(c) || Char.IsWhiteSpace(c))
+                {
+                    sb.Append(c);
+                }
+            }
+            string[] words = sb.ToString().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            return string.Join(" ", words);
         }
 
         public static string RemoveStopWords(string input)
@@ -32,19 +42,39 @@ namespace SelfTrainingBot.HTML
 
         public static async Task<string> ExtractArticle(string articleLink)
         {
-            // Retrieve the article text from the HTTP link
-            var httpClient = new HttpClient();
-            var response = await httpClient.GetAsync(articleLink);
-            var content = await response.Content.ReadAsStringAsync();
+            if (!Uri.IsWellFormedUriString(articleLink, UriKind.Absolute))
+            {
+                throw new ArgumentException("Invalid URL provided");
+            }
 
-            // Parse the HTML to extract the article text
-            var htmlDocument = new HtmlDocument();
-            htmlDocument.LoadHtml(content);
-            string articleText = htmlDocument.DocumentNode.InnerText;
+            try
+            {
+                using (var httpClient = new HttpClient())
+                {
+                    var response = await httpClient.GetAsync(articleLink);
+                    var content = await response.Content.ReadAsStringAsync();
 
-            articleText = preProcess(articleText);
+                    var htmlDocument = new HtmlDocument();
+                    htmlDocument.LoadHtml(content);
+                    var articleNodes = htmlDocument.DocumentNode.DescendantsAndSelf().Where(n => n.Name == "p");
 
-            return articleText;
+                    var articleText = new StringBuilder();
+                    foreach (var node in articleNodes)
+                    {
+                        articleText.AppendLine(node.InnerText);
+                    }
+
+                    return preProcess(articleText.ToString());
+                }
+            }
+            catch (HttpRequestException ex)
+            {
+                throw new Exception("Error retrieving article content: " + ex.Message);
+            }
+            catch (HtmlWebException ex)
+            {
+                throw new Exception("Error parsing article HTML: " + ex.Message);
+            }
         }
 
         public static async Task<string[]> ExtractKeywordsFromArticle(string articleLink)
@@ -74,6 +104,17 @@ namespace SelfTrainingBot.HTML
             // Tokenize the article text
             var separators = new[] { ' ', '\n', '\r', '\t' };
             var keywords = articleText.Split(separators, StringSplitOptions.RemoveEmptyEntries);
+
+            // Join the keywords in the array using the delimiter
+            var delimiter = ", ";
+            var keywordString = string.Join(delimiter, keywords);
+
+            // Output each keyword as a separate item in the console
+            Console.WriteLine("Keywords:");
+            foreach (var keyword in keywords)
+            {
+                Console.WriteLine(keyword);
+            }
 
             return keywords;
         }

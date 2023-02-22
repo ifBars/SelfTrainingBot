@@ -4,37 +4,34 @@ using System.Text.Json;
 
 class NLP
 {
-    public static void Wiki(string searchTerm)
+    public static async Task Wiki(string searchTerm)
     {
+        string url = $"https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch={searchTerm}&format=json";
 
-        string url = "https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=" + searchTerm + "&format=json";
-
-        HttpWebRequest request = (HttpWebRequest)WebRequest.Create(url);
-        HttpWebResponse response = (HttpWebResponse)request.GetResponse();
-
-        string jsonResult;
-        using (StreamReader streamReader = new StreamReader(response.GetResponseStream()))
+        using (var httpClient = new HttpClient())
         {
-            jsonResult = streamReader.ReadToEnd();
+            using (var response = await httpClient.GetAsync(url))
+            {
+                string jsonResult = await response.Content.ReadAsStringAsync();
+                JObject jsonObject = JObject.Parse(jsonResult);
+                JArray searchResults = (JArray)jsonObject["query"]["search"];
+
+                foreach (JToken result in searchResults)
+                {
+                    string title = (string)result["title"];
+                    Console.WriteLine(title);
+                }
+
+                string personDescription = await FindPersonDescriptionAsync(searchTerm);
+                Console.WriteLine("Debug: Printing results");
+                // write the QA pairs to a JSON file
+                Console.WriteLine("Debug: Person Description: " + personDescription);
+                Dictionary<string, string> keyValuePairs = ConvertPersonDescriptionToDictionary(personDescription);
+                SaveTrainingData(keyValuePairs, "wikioutput.json");
+            }
         }
-
-        JObject jsonObject = JObject.Parse(jsonResult);
-        JArray searchResults = (JArray)jsonObject["query"]["search"];
-
-        foreach (JToken result in searchResults)
-        {
-            string title = (string)result["title"];
-            Console.WriteLine(title);
-        }
-
-        string personDescription = FindPersonDescription(searchTerm);
-        Console.WriteLine("Debug: Printing results");
-        // write the QA pairs to a JSON file
-        Console.WriteLine("Debug: Person Description: " + personDescription);
-        Dictionary<string, string> keyValuePairs = ConvertPersonDescriptionToDictionary(personDescription);
-        SaveTrainingData(keyValuePairs, "output.json");
-
     }
+
 
     public static Dictionary<string, string> ConvertPersonDescriptionToDictionary(string personDescription)
     {
@@ -84,19 +81,15 @@ class NLP
             Console.WriteLine($"Error saving training data to {filePath}: {ex.Message}");
         }
     }
-
-    public static string FindPersonDescription(string personName)
+    public static async Task<string> FindPersonDescriptionAsync(string personName)
     {
         string url = "https://en.wikipedia.org/w/api.php?action=query&prop=revisions&rvprop=content&format=json&titles=" + personName;
 
-        HttpWebRequest request = (HttpWebRequest)WebRequest.Create(url);
-        HttpWebResponse response = (HttpWebResponse)request.GetResponse();
+        using HttpClient client = new HttpClient();
+        HttpResponseMessage response = await client.GetAsync(url);
+        response.EnsureSuccessStatusCode();
 
-        string jsonResult;
-        using (StreamReader streamReader = new StreamReader(response.GetResponseStream()))
-        {
-            jsonResult = streamReader.ReadToEnd();
-        }
+        string jsonResult = await response.Content.ReadAsStringAsync();
 
         JObject jsonObject = JObject.Parse(jsonResult);
         JToken pages = jsonObject["query"]["pages"].First.First;
@@ -117,7 +110,4 @@ class NLP
 
         return content;
     }
-
-
-
 }

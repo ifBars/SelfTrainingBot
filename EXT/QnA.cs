@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.Diagnostics.Metrics;
+using System.Text;
 using System.Text.RegularExpressions;
 using SelfTrainingBot.EXT;
 
@@ -7,12 +8,10 @@ namespace SelfTrainingBot.NLP
     public class QnA
     {
 
-        private static Dictionary<string, KnowledgeEntry> knowledgeBase = new Dictionary<string, KnowledgeEntry>();
-
-        public static void Train(double score, string sentence, string generatedQuestion, string generatedAnswer)
+        public static void Train(double score, string[] words, string generatedQuestion, string generatedAnswer, ML ml)
         {
             // Check if inputs are valid
-            if (string.IsNullOrEmpty(sentence) || string.IsNullOrEmpty(generatedQuestion) || string.IsNullOrEmpty(generatedAnswer))
+            if (words == null || words.Length == 0 || string.IsNullOrEmpty(generatedQuestion) || string.IsNullOrEmpty(generatedAnswer))
             {
                 Console.WriteLine("Debug: Entry is Null or Empty");
                 return;
@@ -23,10 +22,6 @@ namespace SelfTrainingBot.NLP
             double weight = Math.Min(Math.Max(score, 0.0), 1.0);
 
             Console.WriteLine("Debug: Splitting words");
-            // Split the sentence into words
-            string[] words = sentence.Split(' ');
-
-            Console.WriteLine("Debug: Grabbing subject and verb");
             // Determine the subject and verb of the sentence
             string subject = Grammar.GetSubject(words);
             string[] verbAndTense = Grammar.GetVerbAndTense(words);
@@ -36,10 +31,10 @@ namespace SelfTrainingBot.NLP
             Console.WriteLine("Debug: Updating knowledgebase");
             // Update the knowledge base with the generated question and answer
             string key = $"{subject}_{verb}_{tense}";
-            if (knowledgeBase.ContainsKey(key))
+            if (KnowledgeEntry.knowledgeBase.ContainsKey(key))
             {
                 Console.WriteLine("Debug: Knowledgebase contains key");
-                KnowledgeEntry entry = knowledgeBase[key];
+                KnowledgeEntry entry = KnowledgeEntry.knowledgeBase[key];
                 entry.GeneratedQuestions.Add(generatedQuestion);
                 entry.GeneratedAnswers.Add(generatedAnswer);
                 entry.Scores.Add(weight);
@@ -54,7 +49,30 @@ namespace SelfTrainingBot.NLP
                 entry.GeneratedQuestions.Add(generatedQuestion);
                 entry.GeneratedAnswers.Add(generatedAnswer);
                 entry.Scores.Add(weight);
-                knowledgeBase.Add(key, entry);
+                KnowledgeEntry.knowledgeBase.Add(key, entry);
+            }
+
+            // Train the ML class on the knowledge base
+            Console.WriteLine("Debug: Training ML");
+            List<string> inputData = new List<string>();
+            List<string> outputData = new List<string>();
+
+            foreach (KeyValuePair<string, KnowledgeEntry> kvp in KnowledgeEntry.knowledgeBase)
+            {
+                inputData.AddRange(kvp.Value.GeneratedAnswers);
+                outputData.AddRange(kvp.Value.GeneratedQuestions);
+            }
+
+            ml.TrainModel(inputData.ToArray(), outputData.ToArray());
+
+            // Use the ML model to generate better questions
+            Console.WriteLine("Debug: Generating questions with ML");
+            string[] inputDataForML = new string[] { $"{subject} {verb} {tense}" };
+            string[] generatedQuestions = ml.AnalyzeData(inputDataForML);
+
+            foreach (string question in generatedQuestions)
+            {
+                Console.WriteLine("Debug: ML Generated Questions - " + question);
             }
         }
 
@@ -149,8 +167,8 @@ namespace SelfTrainingBot.NLP
             // Replace multiple spaces with a single space
             sentence = Regex.Replace(sentence, @"\s+", " ");
 
-            // Split the sentence into clauses
-            string[] clauses = sentence.Split(new string[] { "and", "but", "or", "because" }, StringSplitOptions.RemoveEmptyEntries);
+            // Split the sentence into clauses using regular expressions
+            string[] clauses = Regex.Split(sentence, @"\b(and|but|or|because)\b", RegexOptions.IgnoreCase);
 
             // Find the main idea by looking for the longest clause
             string mainIdea = null;
@@ -164,35 +182,56 @@ namespace SelfTrainingBot.NLP
                     maxLength = trimmedClause.Length;
                 }
             }
+
+            // If the main idea is a question, extract the answer
+            if (mainIdea.EndsWith("?"))
+            {
+                string generatedQuestion = mainIdea.TrimEnd('?');
+                mainIdea = ExtractAnswer(sentence, generatedQuestion);
+            }
+
             return mainIdea;
         }
 
         public static string ExtractAnswer(string sentence, string generatedQuestion)
         {
             // Handle null or empty inputs
-            if (string.IsNullOrEmpty(sentence) || string.IsNullOrEmpty(generatedQuestion))
+            if (string.IsNullOrEmpty(sentence))
             {
+                Console.WriteLine("Debug: Sentence is null");
+                return null;
+            }
+            else if (string.IsNullOrEmpty(generatedQuestion))
+            {
+                Console.WriteLine("Debug: Question is null");
                 return null;
             }
 
-            // Handle different cases of question words
-            if (generatedQuestion.StartsWith("What", StringComparison.OrdinalIgnoreCase))
+            Console.WriteLine("Debug: Mapping Dictionary");
+            // Map question words to answer words
+            Dictionary<string, string> questionWordToAnswerWord = new Dictionary<string, string>
             {
-                generatedQuestion = generatedQuestion.Replace("What", "When", StringComparison.OrdinalIgnoreCase);
-            }
-            else if (generatedQuestion.StartsWith("Who", StringComparison.OrdinalIgnoreCase))
+                { "what", "it" },
+                { "who", "they" },
+                { "where", "there" },
+                { "why", "because" },
+                { "when", "then" },
+                { "how", "like this" },
+                { "which", "that one" },
+                { "whose", "theirs" },
+                { "whom", "them" }
+            };
+
+            // Replace the question word in the generated question with its corresponding answer word
+            string[] generatedQuestionWords = generatedQuestion.Split(' ');
+            string firstWord = generatedQuestionWords[0].ToLower();
+            if (questionWordToAnswerWord.ContainsKey(firstWord))
             {
-                generatedQuestion = generatedQuestion.Replace("who", "When", StringComparison.OrdinalIgnoreCase);
-            }
-            else if (generatedQuestion.StartsWith("Where", StringComparison.OrdinalIgnoreCase))
-            {
-                generatedQuestion = generatedQuestion.Replace("where", "When", StringComparison.OrdinalIgnoreCase);
-            }
-            else if (generatedQuestion.StartsWith("Why", StringComparison.OrdinalIgnoreCase))
-            {
-                generatedQuestion = generatedQuestion.Replace("why", "Because", StringComparison.OrdinalIgnoreCase);
+                generatedQuestionWords[0] = questionWordToAnswerWord[firstWord];
+                generatedQuestion = string.Join(" ", generatedQuestionWords);
             }
 
+            Console.WriteLine("Debug: Splitting sentence");
             // Split the sentence into words
             string[] words = sentence.Split(' ');
 
@@ -201,77 +240,110 @@ namespace SelfTrainingBot.NLP
             string[] verbAndTense = Grammar.GetVerbAndTense(words);
             string verb = verbAndTense[0];
             string tense = verbAndTense[1];
+            Console.WriteLine($"Debug: Subject - {subject}");
+            Console.WriteLine($"Debug: Verb - {verb}");
+            Console.WriteLine($"Debug: Tense - {tense}");
 
-            // Check if verb tense matches generated question
-            string generatedTense = Grammar.GetVerbTense(generatedQuestion);
-            if (generatedTense != tense)
-            {
-                return null;
-            }
+            Console.WriteLine("Debug: Checking if verb matches question");
 
+            Console.WriteLine("Debug: Extracting answer");
             // Extract the answer based on the subject and verb
             string answer = ExtractAnswerBasedOnSubjectAndVerb(subject, verb, tense, words);
 
+            Console.WriteLine("Debug: Answer being sent: " + answer);
             return answer;
         }
-
         private static string ExtractAnswerBasedOnSubjectAndVerb(string subject, string verb, string tense, string[] words)
         {
-            if (subject != null && verb != null)
+            if (subject == null || verb == null)
             {
-                string[] compoundVerbs = verb.Split(' ');
-                if (compoundVerbs.Length > 1)
-                {
-                    verb = compoundVerbs[0];
-                }
-
-                switch (verb)
-                {
-                    case "is":
-                    case "was":
-                        return ExtractIsOrWasAnswer(subject, words, verb);
-                    case "are":
-                    case "were":
-                        return ExtractAreOrWereAnswer(subject, words, verb);
-                    case "has":
-                    case "have":
-                    case "had":
-                        return ExtractHasHaveHadAnswer(tense, verb, words);
-                    default:
-                        return ExtractDefaultAnswer(subject, verb, words);
-                }
+                return ExtractDefaultAnswer(subject, verb, words);
             }
-            else
+
+            // Remove any punctuation from the subject
+            subject = Regex.Replace(subject, @"[\p{P}\p{S}]", "");
+
+            // Remove any leading or trailing whitespace from the subject
+            subject = subject.Trim();
+
+            // Remove any articles from the subject (e.g. "a", "an", "the")
+            var articles = new[] { "a", "an", "the" };
+            subject = string.Join(" ", subject.Split().Where(word => !articles.Contains(word)));
+
+            string[] compoundVerbs = verb.Split(' ');
+            if (compoundVerbs.Length > 1)
             {
-                return ExtractDefaultAnswer(null, null, words);
+                verb = compoundVerbs[0];
+            }
+
+            string firstWord = words[0];
+
+            switch (verb)
+            {
+                case "is":
+                case "was":
+                    return ExtractIsOrWasAnswer(subject, words, verb);
+                case "are":
+                case "were":
+                    return ExtractAreOrWereAnswer(subject, words, verb);
+                case "has":
+                case "have":
+                case "had":
+                    return ExtractHasHaveHadAnswer(tense, verb, words);
+                case "do":
+                case "does":
+                case "did":
+                    if (firstWord == "yes" || firstWord == "no")
+                    {
+                        return firstWord;
+                    }
+                    else
+                    {
+                        return ExtractDefaultAnswer(subject, verb, words);
+                    }
+                default:
+                    return ExtractDefaultAnswer(subject, verb, words);
             }
         }
 
         public static string ExtractHasHaveHadAnswer(string tense, string verb, string[] nouns)
         {
+            if (nouns == null || nouns.Length < 3)
+            {
+                return "Error: Invalid input";
+            }
+
             string noun1 = nouns[0];
             string noun2 = nouns[1];
             string noun3 = nouns[2];
 
-            string verbForm = "";
+            StringBuilder sentenceBuilder = new StringBuilder();
+            sentenceBuilder.Append("The ");
+            sentenceBuilder.Append(noun1);
+            sentenceBuilder.Append(" ");
+            sentenceBuilder.Append(verb);
+
             switch (tense.ToLower())
             {
                 case "present":
-                    verbForm = verb.EndsWith("s") ? "have" : "has";
+                    sentenceBuilder.Append(verb.EndsWith("s") ? " have " : " has ");
                     break;
                 case "past":
-                    verbForm = "had";
+                    sentenceBuilder.Append(" had ");
                     break;
                 case "future":
-                    verbForm = "will have";
+                    sentenceBuilder.Append(" will have ");
                     break;
                 default:
-                    return "";
+                    return "Error: Invalid tense";
             }
 
-            string sentence = $"The {noun1} {verb} {verbForm} {noun2} and {noun3}.";
+            sentenceBuilder.Append(noun2);
+            sentenceBuilder.Append(" and ");
+            sentenceBuilder.Append(noun3);
+            sentenceBuilder.Append(".");
 
-            return sentence;
+            return sentenceBuilder.ToString();
         }
 
         private static string ExtractIsOrWasAnswer(string subject, string[] words, string verb)
@@ -291,10 +363,32 @@ namespace SelfTrainingBot.NLP
             {
                 // Extract the predicate after the subject
                 int index = Array.IndexOf(words, subject);
-                if (index >= 0 && index < words.Length - 1)
+                if (index >= 0)
                 {
-                    string predicate = string.Join(" ", words, index + 1, words.Length - index - 1);
-                    return predicate;
+                    // Find the verb and the direct object
+                    string verbPhrase = null;
+                    string directObject = null;
+                    for (int i = index + 1; i < words.Length; i++)
+                    {
+                        string word = words[i];
+                        if (Grammar.IsVerb(word))
+                        {
+                            verbPhrase = word;
+                            break;
+                        }
+                    }
+                    if (verbPhrase != null && index < words.Length - 1)
+                    {
+                        directObject = string.Join(" ", words, index + 2, words.Length - index - 2);
+                        if (directObject.StartsWith("a ") || directObject.StartsWith("an "))
+                        {
+                            directObject = "the " + directObject;
+                        }
+                    }
+                    if (verbPhrase != null && directObject != null)
+                    {
+                        return $"{subject} {verbPhrase} {directObject}";
+                    }
                 }
             }
             return null;
@@ -319,8 +413,15 @@ namespace SelfTrainingBot.NLP
                 int index = Array.IndexOf(words, subject);
                 if (index >= 0 && index < words.Length - 1)
                 {
-                    string predicate = string.Join(" ", words, index + 1, words.Length - index - 1);
-                    return predicate;
+                    // Extract all predicates after the subject and verb, separated by commas
+                    var predicates = new List<string>();
+                    for (int i = index + 1; i < words.Length; i++)
+                    {
+                        if (words[i] == ",") continue;
+                        if (i < words.Length - 1 && words[i] == "and" && words[i + 1] == verb) continue;
+                        predicates.Add(words[i]);
+                    }
+                    return string.Join(" ", predicates);
                 }
             }
             return null;
@@ -329,43 +430,68 @@ namespace SelfTrainingBot.NLP
         private static string ExtractDefaultAnswer(string subject, string verb, string[] words)
         {
             // check if subject is a pronoun
-            if (Grammar.IsPronoun(subject))
+            bool isPronoun = Grammar.IsPronoun(subject);
+
+            // create a regular expression pattern to match the verb
+            string verbPattern = verb;
+            if (!string.IsNullOrEmpty(verb))
             {
-                // extract the noun after the verb
-                int index = Array.IndexOf(words, verb);
-                if (index >= 0 && index < words.Length - 1)
+                if (verb.EndsWith("s"))
                 {
-                    string noun = words[index + 1];
-                    return Grammar.ReplacePronoun(subject, noun);
+                    verbPattern = $"{verb.Substring(0, verb.Length - 1)}[s]";
+                }
+                else if (verb.EndsWith("ed") || verb.EndsWith("d"))
+                {
+                    verbPattern = $"{verb.Substring(0, verb.Length - 2)}[e]?[d]";
                 }
             }
-            else
+
+            // create a regular expression pattern to match the predicate
+            string predicatePattern = $"({verbPattern})\\s+(.*)";
+            if (isPronoun)
             {
-                // extract the predicate after the subject
-                int index = Array.IndexOf(words, subject);
-                if (index >= 0 && index < words.Length - 1)
+                predicatePattern = $"({verbPattern})\\s+(a|an|the\\s+)?(.*)";
+            }
+
+            // loop through the words to find the predicate
+            string predicate = null;
+            for (int i = 0; i < words.Length; i++)
+            {
+                string word = words[i];
+
+                // check if the word matches the predicate pattern
+                Match match = Regex.Match(word, predicatePattern);
+                if (match.Success)
                 {
-                    string predicate = string.Join(" ", words, index + 1, words.Length - index - 1);
-                    return predicate;
+                    // get the predicate from the match and return it
+                    predicate = match.Groups[2].Value;
+                    if (isPronoun)
+                    {
+                        predicate = $"{match.Groups[3].Value}";
+                        subject = $"{match.Groups[2].Value.Trim()} {subject}";
+                    }
+                    break;
                 }
             }
-            return null;
+
+            // replace any pronouns in the predicate with the subject
+            if (predicate != null && isPronoun)
+            {
+                predicate = Grammar.ReplacePronoun(subject, predicate);
+            }
+
+            return predicate;
         }
 
-        public static string GetRestOfSentence(string[] words, int startIndex)
+        public static string GetRestOfSentence(string[] words, int startIndex, string delimiter = ".")
         {
-            // combine the remaining words into a single string
-            StringBuilder sb = new StringBuilder();
-            for (int i = startIndex; i < words.Length; i++)
+            if (words == null || startIndex < 0 || startIndex >= words.Length)
             {
-                sb.Append(words[i]);
-                if (i < words.Length - 1)
-                {
-                    sb.Append(" ");
-                }
+                return "";
             }
-            sb.Append(".");
-            return sb.ToString();
+
+            string restOfSentence = string.Join(" ", words, startIndex, words.Length - startIndex);
+            return restOfSentence + delimiter;
         }
 
     }
